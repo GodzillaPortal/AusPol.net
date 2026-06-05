@@ -1768,15 +1768,18 @@ body.sb-right-collapsed .lbl-toggle-wrap{right:1.1rem}
   #donut-svg-wrap svg{ width:100%; height:auto; max-width:210px; }
   .donut-title{ display:none; }            /* chart only in Row 2 */
 
-  /* ── ROW 3 — Bar graph (+ its seat rows) then the donut Legend ── */
+  /* ── ROW 3 — Bar graph + its seat-breakdown rows ──
+     The seat-rows list (#s-rows: party + colour + seat count) already serves
+     as the party key for BOTH the bar and the donut, so the separate donut
+     legend (#donut-leg, party + colour only) is redundant on mobile and read
+     as a "duplicate legend" stacked below the breakdown. Remove it from the
+     mobile layout entirely (display:none → zero footprint, no reflow). The
+     donut still shows; #s-rows is the single party legend. Desktop keeps the
+     donut legend in its own card (this query never matches there). */
   .card:has(#s-bar){ order:4; flex:0 0 100%; padding:.2rem 0 0; }
   .seat-lbl{ font-size:.6rem; }
   .seat-rows{ font-size:.68rem; }
-  #donut-leg{
-    order:5; flex:0 0 100%;
-    margin-top:.35rem;
-    grid-template-columns:1fr 1fr; gap:.2rem .6rem; font-size:.64rem;
-  }
+  #donut-leg{ display:none !important; }   /* single legend on mobile = #s-rows */
 
   /* ── ROW 4 — Full Party Results button (full-width touch target) ── */
   .fpr-trigger-wrap{ order:6; flex:0 0 100%; }
@@ -1975,7 +1978,6 @@ body.sb-right-collapsed .lbl-toggle-wrap{right:1.1rem}
   .layout{ gap:.4rem; padding:.4rem; }
   .pm-photo-wrap{ max-height:24vh; }
   #donut-svg-wrap svg{ max-width:160px; }
-  #donut-leg{ grid-template-columns:1fr; gap:.12rem; font-size:.62rem; }
   #s-year{ font-size:1.7rem; }
   /* Hamburger is smaller here (.5rem / 40px) — re-anchor Ko-fi to clear it,
      and mirror the same offset on GitHub so the icons stay symmetric. */
@@ -2040,7 +2042,9 @@ body.sb-right-collapsed .lbl-toggle-wrap{right:1.1rem}
   #donut-svg-wrap{ display:flex; justify-content:center; }
   #donut-svg-wrap svg{ width:100%; height:auto; max-width:150px; }
   .donut-title{ font-size:.72rem; margin-bottom:.2rem; }
-  .donut-legend{ font-size:.56rem; gap:.14rem .35rem; }
+  /* Single legend on mobile landscape too: #s-rows is the party key; the
+     redundant donut legend is removed from layout (see portrait note). */
+  #donut-leg{ display:none !important; }
 
   /* ── Shared card / typography compression ── */
   .card, .donut-card{ padding:.45rem .55rem; min-height:0; }
