@@ -1451,6 +1451,35 @@ body.current-mode .fpr-trigger-wrap{display:none}
   .fpr-table th,.fpr-table td{padding:.45rem .5rem}
 }
 
+/* ── MOBILE: party-results modal hardening ──────────────────────────────
+   On mobile the modal could open with its title/close clipped above the
+   viewport (its fixed positioning is offset when the page is scrolled, as
+   .layout carries a filter transition). Two defences:
+   1. JS resets page + body scroll on open (see openModal()).
+   2. Bulletproof scroll-safe centering here: the overlay can scroll and the
+      card uses margin:auto, so even a too-tall card is never top-clipped —
+      the title + close button are always reachable.
+   Also enlarge the close button to a comfortable ≥44px thumb target.
+   Desktop is untouched (these queries never match there). */
+@media (max-width:900px) and (orientation:portrait),
+       (orientation:landscape) and (max-height:500px){
+  .fpr-modal{
+    align-items:flex-start;            /* top-anchor; margin:auto re-centres */
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding:8px 0;
+  }
+  .fpr-modal-card{
+    margin:auto;                       /* centres when it fits, scrollable when not */
+    max-height:calc(100vh - 16px);
+    width:min(880px,94vw);
+  }
+  .fpr-modal-close{
+    width:44px;height:44px;            /* ≥44px touch target */
+    font-size:1.7rem;
+    flex:0 0 auto;
+  }
+}
+
 /* ═════════════════════════════════════════════════════════════════════════
    RESPONSIVE — TOOLTIPS
    Scale every tooltip surface progressively down at smaller breakpoints.
@@ -9864,6 +9893,51 @@ setTimeout(updateScaleBar, 150);
     dragging = false;
     vicEl.classList.remove('dragging');
   });
+
+  // ── Touch: 1-finger pan + 2-finger pinch-zoom (mobile) ──
+  // VIC previously had no touch handlers. Mirrors the national map / other
+  // state insets: pinch zooms about the fingers' midpoint, one finger pans.
+  // preventDefault stops page scroll + state-tap ghost clicks.
+  var _vicPinchDist = null, _vicPan = null;
+  vicSvg.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 2) {
+      _vicPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                                 e.touches[0].clientY - e.touches[1].clientY);
+      _vicPan = null;
+    } else if (e.touches.length === 1) {
+      _vicPan = {sx:e.touches[0].clientX, sy:e.touches[0].clientY, vx:vb.x, vy:vb.y};
+    }
+    e.preventDefault();
+  }, {passive:false});
+  vicSvg.addEventListener('touchmove', function(e) {
+    if (e.touches.length >= 2) {
+      var dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                            e.touches[0].clientY - e.touches[1].clientY);
+      if (_vicPinchDist) {
+        var r = vicSvg.getBoundingClientRect();
+        var fac = _vicPinchDist / dist;
+        var mx = ((e.touches[0].clientX + e.touches[1].clientX)/2 - r.left)/r.width*vb.w + vb.x;
+        var my = ((e.touches[0].clientY + e.touches[1].clientY)/2 - r.top)/r.height*vb.h + vb.y;
+        vb.w *= fac; vb.x = mx - (mx - vb.x)*fac; vb.y = my - (my - vb.y)*fac;
+        clampVic(); setVB();
+      }
+      _vicPinchDist = dist;
+    } else if (e.touches.length === 1 && _vicPan) {
+      var r2 = vicSvg.getBoundingClientRect();
+      vb.x = _vicPan.vx - (e.touches[0].clientX - _vicPan.sx)/r2.width*vb.w;
+      vb.y = _vicPan.vy - (e.touches[0].clientY - _vicPan.sy)/r2.height*vb.h;
+      clampVic(); setVB();
+    }
+    e.preventDefault();
+  }, {passive:false});
+  vicSvg.addEventListener('touchend', function(e) {
+    if (e.touches.length < 2) _vicPinchDist = null;
+    if (e.touches.length === 1) {
+      _vicPan = {sx:e.touches[0].clientX, sy:e.touches[0].clientY, vx:vb.x, vy:vb.y};
+    } else if (e.touches.length === 0) {
+      _vicPan = null;
+    }
+  }, {passive:false});
 }());
 
 // ── ACT inset zoom/pan ──────────────────────────────────────────────────────────────────
@@ -9991,6 +10065,51 @@ setTimeout(updateScaleBar, 150);
     dragging = false;
     actEl.classList.remove('dragging');
   });
+
+  // ── Touch: 1-finger pan + 2-finger pinch-zoom (mobile) ──
+  // ACT previously had no touch handlers. Mirrors the national map / other
+  // state insets: pinch zooms about the fingers' midpoint, one finger pans.
+  // preventDefault stops page scroll + state-tap ghost clicks.
+  var _actPinchDist = null, _actPan = null;
+  actSvg.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 2) {
+      _actPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                                 e.touches[0].clientY - e.touches[1].clientY);
+      _actPan = null;
+    } else if (e.touches.length === 1) {
+      _actPan = {sx:e.touches[0].clientX, sy:e.touches[0].clientY, vx:vb.x, vy:vb.y};
+    }
+    e.preventDefault();
+  }, {passive:false});
+  actSvg.addEventListener('touchmove', function(e) {
+    if (e.touches.length >= 2) {
+      var dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                            e.touches[0].clientY - e.touches[1].clientY);
+      if (_actPinchDist) {
+        var r = actSvg.getBoundingClientRect();
+        var fac = _actPinchDist / dist;
+        var mx = ((e.touches[0].clientX + e.touches[1].clientX)/2 - r.left)/r.width*vb.w + vb.x;
+        var my = ((e.touches[0].clientY + e.touches[1].clientY)/2 - r.top)/r.height*vb.h + vb.y;
+        vb.w *= fac; vb.x = mx - (mx - vb.x)*fac; vb.y = my - (my - vb.y)*fac;
+        clampAct(); setVB();
+      }
+      _actPinchDist = dist;
+    } else if (e.touches.length === 1 && _actPan) {
+      var r2 = actSvg.getBoundingClientRect();
+      vb.x = _actPan.vx - (e.touches[0].clientX - _actPan.sx)/r2.width*vb.w;
+      vb.y = _actPan.vy - (e.touches[0].clientY - _actPan.sy)/r2.height*vb.h;
+      clampAct(); setVB();
+    }
+    e.preventDefault();
+  }, {passive:false});
+  actSvg.addEventListener('touchend', function(e) {
+    if (e.touches.length < 2) _actPinchDist = null;
+    if (e.touches.length === 1) {
+      _actPan = {sx:e.touches[0].clientX, sy:e.touches[0].clientY, vx:vb.x, vy:vb.y};
+    } else if (e.touches.length === 0) {
+      _actPan = null;
+    }
+  }, {passive:false});
 }());
 
     // -- TAS inset pan/zoom --------------------------------------------------
@@ -10088,8 +10207,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       tasSvg.addEventListener('touchmove', function(e) {
         e.preventDefault();
-        var ids = Object.keys(touches);
-        if (ids.length === 1) {
+        if (e.touches.length === 1) {
           var t = e.changedTouches[0], old = touches[t.identifier];
           if (!old) return;
           var r = tasSvg.getBoundingClientRect();
@@ -10097,7 +10215,7 @@ setTimeout(updateScaleBar, 150);
           vb.y -= (t.clientY - old.y) / r.height * vb.h;
           touches[t.identifier] = {x:t.clientX, y:t.clientY};
           clampTas(); setVB();
-        } else if (ids.length === 2) {
+        } else if (e.touches.length >= 2) {
           var t0 = e.touches[0], t1 = e.touches[1];
           var r = tasSvg.getBoundingClientRect();
           var d = Math.hypot(t0.clientX-t1.clientX, t0.clientY-t1.clientY);
@@ -10114,7 +10232,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       tasSvg.addEventListener('touchend', function(e) {
         Array.from(e.changedTouches).forEach(function(t) { delete touches[t.identifier]; });
-        if (Object.keys(touches).length < 2) delete touches._pinchD;
+        if (e.touches.length < 2) delete touches._pinchD;
       });
     }());
 
@@ -10214,8 +10332,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       nswSvg.addEventListener('touchmove', function(e) {
         e.preventDefault();
-        var ids = Object.keys(touchesNsw);
-        if (ids.length === 1) {
+        if (e.touches.length === 1) {
           var t = e.changedTouches[0], old = touchesNsw[t.identifier];
           if (!old) return;
           var r = nswSvg.getBoundingClientRect();
@@ -10223,7 +10340,7 @@ setTimeout(updateScaleBar, 150);
           vbNsw.y -= (t.clientY - old.y) / r.height * vbNsw.h;
           touchesNsw[t.identifier] = {x:t.clientX, y:t.clientY};
           clampNsw(); setVB_nsw();
-        } else if (ids.length === 2) {
+        } else if (e.touches.length >= 2) {
           var t0 = e.touches[0], t1 = e.touches[1];
           var r = nswSvg.getBoundingClientRect();
           var d = Math.hypot(t0.clientX-t1.clientX, t0.clientY-t1.clientY);
@@ -10240,7 +10357,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       nswSvg.addEventListener('touchend', function(e) {
         Array.from(e.changedTouches).forEach(function(t) { delete touchesNsw[t.identifier]; });
-        if (Object.keys(touchesNsw).length < 2) delete touchesNsw._pinchD;
+        if (e.touches.length < 2) delete touchesNsw._pinchD;
       });
     }());
 
@@ -10345,8 +10462,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       qldSvg.addEventListener('touchmove', function(e) {
         e.preventDefault();
-        var ids = Object.keys(touchesQld);
-        if (ids.length === 1) {
+        if (e.touches.length === 1) {
           var t = e.changedTouches[0], old = touchesQld[t.identifier];
           if (!old) return;
           var r = qldSvg.getBoundingClientRect();
@@ -10355,7 +10471,7 @@ setTimeout(updateScaleBar, 150);
           vbQld.y -= (t.clientY - old.y) / s;
           touchesQld[t.identifier] = {x:t.clientX, y:t.clientY};
           clampQld(); setVB_qld();
-        } else if (ids.length === 2) {
+        } else if (e.touches.length >= 2) {
           var t0 = e.touches[0], t1 = e.touches[1];
           var r = qldSvg.getBoundingClientRect();
           var s = Math.min(r.width / vbQld.w, r.height / vbQld.h);
@@ -10375,7 +10491,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       qldSvg.addEventListener('touchend', function(e) {
         Array.from(e.changedTouches).forEach(function(t) { delete touchesQld[t.identifier]; });
-        if (Object.keys(touchesQld).length < 2) delete touchesQld._pinchD;
+        if (e.touches.length < 2) delete touchesQld._pinchD;
       });
     }());
 
@@ -10491,8 +10607,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       saSvg.addEventListener('touchmove', function(e) {
         e.preventDefault();
-        var ids = Object.keys(touchesSa);
-        if (ids.length === 1) {
+        if (e.touches.length === 1) {
           var t = e.changedTouches[0], old = touchesSa[t.identifier];
           if (!old) return;
           var r = saSvg.getBoundingClientRect();
@@ -10501,7 +10616,7 @@ setTimeout(updateScaleBar, 150);
           vbSa.y -= (t.clientY - old.y) / s;
           touchesSa[t.identifier] = {x:t.clientX, y:t.clientY};
           clampSa(); setVB_sa();
-        } else if (ids.length === 2) {
+        } else if (e.touches.length >= 2) {
           var t0 = e.touches[0], t1 = e.touches[1];
           var r = saSvg.getBoundingClientRect();
           var s = Math.min(r.width / vbSa.w, r.height / vbSa.h);
@@ -10521,7 +10636,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       saSvg.addEventListener('touchend', function(e) {
         Array.from(e.changedTouches).forEach(function(t) { delete touchesSa[t.identifier]; });
-        if (Object.keys(touchesSa).length < 2) delete touchesSa._pinchD;
+        if (e.touches.length < 2) delete touchesSa._pinchD;
       });
     }());
 
@@ -10625,8 +10740,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       ntSvg.addEventListener('touchmove', function(e) {
         e.preventDefault();
-        var ids = Object.keys(touchesNt);
-        if (ids.length === 1) {
+        if (e.touches.length === 1) {
           var t = e.changedTouches[0], old = touchesNt[t.identifier];
           if (!old) return;
           var r = ntSvg.getBoundingClientRect();
@@ -10635,7 +10749,7 @@ setTimeout(updateScaleBar, 150);
           vbNt.y -= (t.clientY - old.y) / s;
           touchesNt[t.identifier] = {x:t.clientX, y:t.clientY};
           clampNt(); setVB_nt();
-        } else if (ids.length === 2) {
+        } else if (e.touches.length >= 2) {
           var t0 = e.touches[0], t1 = e.touches[1];
           var r = ntSvg.getBoundingClientRect();
           var s = Math.min(r.width / vbNt.w, r.height / vbNt.h);
@@ -10655,7 +10769,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       ntSvg.addEventListener('touchend', function(e) {
         Array.from(e.changedTouches).forEach(function(t) { delete touchesNt[t.identifier]; });
-        if (Object.keys(touchesNt).length < 2) delete touchesNt._pinchD;
+        if (e.touches.length < 2) delete touchesNt._pinchD;
       });
     }());
 
@@ -10769,8 +10883,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       waSvg.addEventListener('touchmove', function(e) {
         e.preventDefault();
-        var ids = Object.keys(touchesWa);
-        if (ids.length === 1) {
+        if (e.touches.length === 1) {
           var t = e.changedTouches[0], old = touchesWa[t.identifier];
           if (!old) return;
           var r = waSvg.getBoundingClientRect();
@@ -10779,7 +10892,7 @@ setTimeout(updateScaleBar, 150);
           vbWa.y -= (t.clientY - old.y) / s;
           touchesWa[t.identifier] = {x:t.clientX, y:t.clientY};
           clampWa(); setVB_wa();
-        } else if (ids.length === 2) {
+        } else if (e.touches.length >= 2) {
           var t0 = e.touches[0], t1 = e.touches[1];
           var r = waSvg.getBoundingClientRect();
           var s = Math.min(r.width / vbWa.w, r.height / vbWa.h);
@@ -10799,7 +10912,7 @@ setTimeout(updateScaleBar, 150);
       }, {passive:false});
       waSvg.addEventListener('touchend', function(e) {
         Array.from(e.changedTouches).forEach(function(t) { delete touchesWa[t.identifier]; });
-        if (Object.keys(touchesWa).length < 2) delete touchesWa._pinchD;
+        if (e.touches.length < 2) delete touchesWa._pinchD;
       });
     }());
 
@@ -11358,6 +11471,12 @@ setTimeout(updateScaleBar, 150);
     sortKey = 'seats'; sortDir = -1;   // default per spec
     renderInitial();
     modal.setAttribute('aria-hidden','false');
+    // Always open at the top: reset the page scroll (so the fixed overlay is
+    // correctly viewport-aligned even when the FPR button was tapped far down
+    // a scrolled mobile page) and the modal body's own scroll position.
+    window.scrollTo(0, 0);
+    var _fprBody = modal.querySelector('.fpr-modal-body');
+    if (_fprBody) _fprBody.scrollTop = 0;
     // Row-entrance stagger: re-trigger CSS animation by toggling the class.
     tbody.classList.remove('fpr-anim-in');
     // Force reflow so the next add restarts the animation.
