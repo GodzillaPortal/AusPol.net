@@ -1473,6 +1473,14 @@ body.current-mode .fpr-trigger-wrap{display:none}
     max-height:calc(100vh - 16px);
     width:min(880px,94vw);
   }
+  /* Lock the scrolling region's geometry so the table never reshapes mid-
+     scroll: reserve the scrollbar gutter (no width snap when the bar shows/
+     hides) and pin the table to a fixed 100% width. */
+  .fpr-modal-body{
+    scrollbar-gutter:stable;
+    overflow-x:hidden;
+  }
+  .fpr-modal-body .fpr-table{ width:100%; }
   .fpr-modal-close{
     width:44px;height:44px;            /* ≥44px touch target */
     font-size:1.7rem;
@@ -1772,7 +1780,8 @@ body.sb-right-collapsed .lbl-toggle-wrap{right:1.1rem}
 
   /* ── ROW 4 — Full Party Results button (full-width touch target) ── */
   .fpr-trigger-wrap{ order:6; flex:0 0 100%; }
-  .fpr-btn{ width:100%; font-size:.78rem; padding:.6rem; }
+  /* Larger, easier one-thumb target (visual + touch). */
+  .fpr-btn{ width:100%; font-size:.95rem; padding:1rem; min-height:54px; letter-spacing:.06em; }
 
   /* ── ROW 5 — Cabinet button (outlined, matches Full Party Results) ──
      Re-box it with the same panel as .fpr-btn (it was flattened by the
@@ -2038,7 +2047,8 @@ body.sb-right-collapsed .lbl-toggle-wrap{right:1.1rem}
   .seat-lbl{ font-size:.55rem; margin-bottom:.3rem; }
   .seat-rows{ font-size:.6rem; }
   .ctx-card{ font-size:.66rem; line-height:1.4; padding:.45rem .55rem; }
-  .fpr-btn{ font-size:.68rem; padding:.45rem .55rem; }
+  /* Bigger touch target in landscape too (was cramped). */
+  .fpr-btn{ font-size:.82rem; padding:.7rem .8rem; min-height:46px; }
   .cabinet-card{ min-height:54px; }
   .cabinet-card .cabinet-title{ font-size:1rem; }
 
@@ -11862,8 +11872,24 @@ setTimeout(updateScaleBar, 150);
     root.style.setProperty('--ui-scale', s.toFixed(3));
   }
   apply();
+  // Mobile browsers grow/shrink the layout viewport HEIGHT as the address
+  // bar collapses while scrolling. Recomputing --ui-scale on those height-
+  // only changes rescales every rem (root font-size = 15px * --ui-scale),
+  // reflowing the whole page and the party-results modal — the "jump at the
+  // bottom" and the table reshaping during scroll. So on mobile we ignore
+  // height-only resizes and only react when the WIDTH actually changes
+  // (orientation change / real resize). Desktop is unchanged: it always
+  // recomputes, exactly as before.
+  function _isMobileViewport(){
+    return window.matchMedia('(max-width:900px) and (orientation:portrait)').matches
+        || window.matchMedia('(orientation:landscape) and (max-height:500px)').matches;
+  }
+  var _lastW = window.innerWidth;
   // rAF-throttle so a drag-resize doesn't spam the property write.
   window.addEventListener('resize', function(){
+    var w = window.innerWidth;
+    if (_isMobileViewport() && w === _lastW) return;   // address-bar collapse → ignore
+    _lastW = w;
     if (!rafId) rafId = requestAnimationFrame(apply);
   });
 })();
