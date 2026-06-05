@@ -1780,8 +1780,13 @@ body.sb-right-collapsed .lbl-toggle-wrap{right:1.1rem}
 
   /* ── ROW 4 — Full Party Results button (full-width touch target) ── */
   .fpr-trigger-wrap{ order:6; flex:0 0 100%; }
-  /* Larger, easier one-thumb target (visual + touch). */
-  .fpr-btn{ width:100%; font-size:.95rem; padding:1rem; min-height:54px; letter-spacing:.06em; }
+  /* Larger, easier one-thumb target. PX units (not rem) so the global
+     --ui-scale (~0.72 on phones) can't shrink the label to ~10px — this is
+     a proper modern-mobile button size regardless of the UI-scale factor. */
+  .fpr-btn{
+    width:100%; min-height:60px;
+    font-size:16px; padding:18px 16px; letter-spacing:.05em;
+  }
 
   /* ── ROW 5 — Cabinet button (outlined, matches Full Party Results) ──
      Re-box it with the same panel as .fpr-btn (it was flattened by the
@@ -2047,8 +2052,9 @@ body.sb-right-collapsed .lbl-toggle-wrap{right:1.1rem}
   .seat-lbl{ font-size:.55rem; margin-bottom:.3rem; }
   .seat-rows{ font-size:.6rem; }
   .ctx-card{ font-size:.66rem; line-height:1.4; padding:.45rem .55rem; }
-  /* Bigger touch target in landscape too (was cramped). */
-  .fpr-btn{ font-size:.82rem; padding:.7rem .8rem; min-height:46px; }
+  /* Bigger touch target in landscape too. PX units so --ui-scale can't
+     shrink the label (see portrait note). */
+  .fpr-btn{ font-size:15px; padding:13px 14px; min-height:50px; }
   .cabinet-card{ min-height:54px; }
   .cabinet-card .cabinet-title{ font-size:1rem; }
 
