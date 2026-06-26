@@ -31,6 +31,6 @@
     <img
       src="https://raw.githubusercontent.com/GodzillaPortal/AusPol.net/main/assets/images/kofi.png"
       alt="Support me on Ko-fi"
-      width="250">
+      width="150">
   </a>
 </p>
