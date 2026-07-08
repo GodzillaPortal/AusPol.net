@@ -2537,9 +2537,10 @@ const PC = {
   oth:'#4b5c6b', one:'#e05800', teal:'#0096a0',
   ca:'#d4a020',  
   
-  top:'#5b3a90', 
-  ff:'#8b6f47',  
-  lc:'#3d8b3d'   
+  top:'#5b3a90',
+  ff:'#8b6f47',
+  lc:'#3d8b3d',
+  csa:'#a64ac9'
 };
 
 const E = {
@@ -4912,7 +4913,7 @@ let isCurrentMode = true;
 
 const CURRENT_STATE_DATA = {
 
-  NSW: {alp:28, lib:5, nat:5, on:2, grn:0, kap:0, ca:0, ind:6, tot:46},
+  NSW: {alp:28, lib:5, nat:5, on:2, grn:0, kap:0, ca:0, csa:2, ind:4, tot:46},
   VIC: {alp:27, lib:6, nat:3, on:0, grn:0, kap:0, ca:0, ind:2, tot:38},
   QLD: {alp:12, lib:10, nat:6, on:0, grn:1, kap:1, ca:0, ind:0, tot:30},
   WA:  {alp:11, lib:4, nat:0, on:0, grn:0, kap:0, ca:0, ind:1, tot:16},
@@ -4922,12 +4923,22 @@ const CURRENT_STATE_DATA = {
   ACT: {alp:3,  lib:0, nat:0, on:0, grn:0, kap:0, ca:0, ind:0, tot:3},
 };
 
+function orderSeatsDesc(arr) {
+
+  return arr.slice().sort(function(a, b){
+    var aInd = /Independent/i.test(a.name);
+    var bInd = /Independent/i.test(b.name);
+    if (aInd !== bInd) return aInd ? 1 : -1;
+    return b.seats - a.seats;
+  });
+}
+
 function computeFederalCurrent() {
 
-  var t = {alp:94, lib:27, nat:14, on:2, grn:1, kap:1, ca:1, ind:10};
-  var total = t.alp + t.lib + t.nat + t.on + t.grn + t.kap + t.ca + t.ind;
+  var t = {alp:94, lib:27, nat:14, on:2, grn:1, kap:1, ca:1, ind:8, csa:2};
+  var total = t.alp + t.lib + t.nat + t.on + t.grn + t.kap + t.ca + t.ind + t.csa;
   var coa = t.lib + t.nat;
-  var oth = t.on + t.kap + t.ca + t.ind;
+  var oth = t.on + t.kap + t.ca + t.ind + t.csa;
   return {
     alp: t.alp,
     lnp: coa,
@@ -4935,7 +4946,7 @@ function computeFederalCurrent() {
     oth: oth,
     total: total,
     winner: (t.alp >= coa) ? 'ALP' : 'LNP',
-    donut: [
+    donut: orderSeatsDesc([
       {name:'Labor',                seats:t.alp, pv:0, col:PC.alp},
       {name:'Liberal',              seats:t.lib, pv:0, col:PC.lib},
       {name:'Nationals',            seats:t.nat, pv:0, col:PC.nat},
@@ -4943,8 +4954,9 @@ function computeFederalCurrent() {
       {name:'Greens',               seats:t.grn, pv:0, col:PC.grn},
       {name:"Katter's Australian",  seats:t.kap, pv:0, col:PC.kap},
       {name:'Centre Alliance',      seats:t.ca,  pv:0, col:PC.ca},
+      {name:'Community Strong Australia', seats:t.csa, pv:0, col:PC.csa},
       {name:'Independent',          seats:t.ind, pv:0, col:PC.ind},
-    ],
+    ]),
   };
 }
 
@@ -4993,6 +5005,9 @@ function buildQLDChartData() {
     ];
   }
   outerRing = outerRing.filter(function(p){ return p.seats > 0; });
+  if (typeof isCurrentMode !== 'undefined' && isCurrentMode) {
+    outerRing = orderSeatsDesc(outerRing);
+  }
 
   var innerRing;
   if (typeof cur !== 'undefined' && cur === '2025' && typeof QLD_2025_FPP_DONUT !== 'undefined') {
@@ -5031,13 +5046,15 @@ function buildStateCurrentChartData(sc) {
     {name:'Greens',               seats:s.grn, pv:0, col:PC.grn},
     {name:"Katter's Australian",  seats:s.kap, pv:0, col:PC.kap},
     {name:'Centre Alliance',      seats:s.ca,  pv:0, col:PC.ca},
+    {name:'Community Strong Australia', seats:(s.csa||0), pv:0, col:PC.csa},
     {name:'Independent',          seats:s.ind, pv:0, col:PC.ind},
   ].filter(function(p){ return p.seats > 0; });
+  donut = orderSeatsDesc(donut);
 
   var alpSeats = s.alp;
   var coaSeats = s.lib + s.nat;
   var grnSeats = s.grn;
-  var othSeats = s.on + s.kap + s.ca + s.ind;
+  var othSeats = s.on + s.kap + s.ca + (s.csa||0) + s.ind;
   var winner = 'SPLIT';
   if (alpSeats >= coaSeats && alpSeats >= grnSeats && alpSeats >= othSeats) winner = 'ALP';
   else if (coaSeats >= alpSeats && coaSeats >= grnSeats && coaSeats >= othSeats) winner = 'LNP';
@@ -5958,8 +5975,10 @@ const zHint = document.querySelector('.z-hint');
 const etip = document.getElementById('etip');
 
 const CURRENT_OWNERSHIP_OVERRIDES = {
-  'New England': 'on',   
-  'Farrer':      'on',   
+  'New England': 'on',
+  'Farrer':      'on',
+  'Wentworth':   'csa',
+  'Warringah':   'csa',
 };
 
 const CURRENT_MP_OVERRIDES = {
@@ -5999,6 +6018,7 @@ function elecFill(party, margin) {
     teal:{h:184,s:100,l:30}, kap:{h:0,s:70,l:32}, on:{h:26,s:90,l:50},
 
     ca:{h:43,s:75,l:48},
+    csa:{h:283,s:54,l:54},
     oth:{h:210,s:15,l:44}
   };
   const b = base[party] || base.oth;
@@ -6029,6 +6049,7 @@ const PARTY_INFO = {
   on:{name:'One Nation',col:'#f57e25'},
 
   ca:{name:'Centre Alliance',col:'#d4a020'},
+  csa:{name:'Community Strong Australia',col:'#a64ac9'},
   oth:{name:'Other',col:'#4b5c6b'}
 };
 
@@ -7522,7 +7543,7 @@ function showElecTip(e) {
 
   var PARTY_ABBR = { alp:'ALP', lib:'LIB', nat:'NAT', lnp:'LNP',
                      grn:'GRN', ind:'IND', on:'ONP', kap:'KAP', ca:'CA',
-                     teal:'IND', oth:'OTH' };
+                     csa:'CSA', teal:'IND', oth:'OTH' };
   var badgeText = pi.name;
   if (meta) {
     var abbr = PARTY_ABBR[meta.winner] || (PARTY_INFO[meta.winner]||PARTY_INFO.oth).name;
@@ -9920,17 +9941,21 @@ setTimeout(updateScaleBar, 150);
 
 (function wireUIScale(){
   var root = document.documentElement;
+
+  var MAC_UI_BOOST = (/Mac/i.test(navigator.platform || '')
+      || /Macintosh|Mac OS X/i.test(navigator.userAgent || '')) ? 1.20 : 1;
+
   function compute(h){
     if (h >= 1080) return 1.00;
     if (h >=  950) return 0.86;
-    if (h >=  850) return 0.78;   
-    if (h >=  750) return 0.72;   
+    if (h >=  850) return 0.78;
+    if (h >=  750) return 0.72;
     return 0.65;
   }
   var rafId = 0;
   function apply(){
     rafId = 0;
-    var s = compute(window.innerHeight);
+    var s = compute(window.innerHeight) * MAC_UI_BOOST;
     root.style.setProperty('--ui-scale', s.toFixed(3));
   }
   apply();
